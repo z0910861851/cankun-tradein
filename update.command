@@ -51,6 +51,10 @@ echo ""
 echo -e "${BLUE}☁️  Step 1／5：從 Google Drive 同步資料${NC}"
 echo "──────────────────────────────────────────────"
 python3 "$REPO_DIR/skill/sync_from_drive.py" 2>/dev/null
+
+echo ""
+echo "📱 讀取 iPhone 銷量截圖..."
+python3 "$REPO_DIR/skill/ocr_iphone_sales.py" 2>/dev/null
 echo ""
 
 EXCEL_COUNT=$(ls -1 "$DATA_DIR"/*.xlsx 2>/dev/null | wc -l | tr -d ' ')
