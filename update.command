@@ -30,7 +30,7 @@ SKILL_PATH="$REPO_DIR/skill/analyze_and_report.py"
 GITHUB_REPO="z0910861851/cankun-tradein"
 
 # ── Step 0：檢查環境 ──
-echo -e "${BLUE}🔍 Step 0／3：檢查環境${NC}"
+echo -e "${BLUE}🔍 Step 0／5：檢查環境${NC}"
 echo "──────────────────────────────────────────────"
 
 if ! command -v python3 &> /dev/null; then
@@ -45,6 +45,14 @@ if ! python3 -c "import pandas" 2>/dev/null; then
 fi
 echo "✅ pandas 已安裝"
 
+echo ""
+
+# ── Step 1：從 Google Drive 同步資料 ──
+echo -e "${BLUE}☁️  Step 1／5：從 Google Drive 同步資料${NC}"
+echo "──────────────────────────────────────────────"
+python3 "$REPO_DIR/skill/sync_from_drive.py" 2>/dev/null
+echo ""
+
 EXCEL_COUNT=$(ls -1 "$DATA_DIR"/*.xlsx 2>/dev/null | wc -l | tr -d ' ')
 if [ "$EXCEL_COUNT" -eq 0 ]; then
   echo -e "${RED}❌ data-archive 內沒有 Excel 檔${NC}"
@@ -53,8 +61,14 @@ fi
 echo "✅ data-archive 內有 $EXCEL_COUNT 個 Excel 檔"
 echo ""
 
-# ── Step 1：分析 + 產生 HTML ──
-echo -e "${BLUE}📊 Step 1／3：分析 Excel 資料${NC}"
+# ── Step 2：上傳回收價到 Firebase ──
+echo -e "${BLUE}💰 Step 2／5：更新回收價格${NC}"
+echo "──────────────────────────────────────────────"
+python3 "$REPO_DIR/skill/upload_prices.py" 2>/dev/null
+echo ""
+
+# ── Step 3：分析 + 產生 HTML ──
+echo -e "${BLUE}📊 Step 3／5：分析 Excel 資料${NC}"
 echo "──────────────────────────────────────────────"
 ls -1 "$DATA_DIR"/*.xlsx | sed 's|.*/|  • |'
 echo ""
@@ -65,8 +79,8 @@ python3 "$SKILL_PATH" \
 
 echo ""
 
-# ── Step 2：推上 GitHub ──
-echo -e "${BLUE}📤 Step 2／3：推送到 GitHub${NC}"
+# ── Step 4：推上 GitHub ──
+echo -e "${BLUE}📤 Step 4／5：推送到 GitHub${NC}"
 echo "──────────────────────────────────────────────"
 cd "$REPO_DIR"
 git add index.html skill/
@@ -90,8 +104,8 @@ else
 fi
 echo ""
 
-# ── Step 3：等待 Pages ──
-echo -e "${BLUE}⏳ Step 3／3：等待網站上線（最多 1 分鐘）${NC}"
+# ── Step 5：等待 Pages ──
+echo -e "${BLUE}⏳ Step 5／5：等待網站上線（最多 1 分鐘）${NC}"
 echo "──────────────────────────────────────────────"
 for i in $(seq 1 12); do
   sleep 5
