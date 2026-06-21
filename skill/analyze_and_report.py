@@ -40,7 +40,7 @@ def display_name(name: str) -> str:
     return STORE_DISPLAY_NAMES.get(name, name)
 
 # ── 預設 iPhone 銷量（首次載入時自動帶入；使用者可覆寫） ──
-# 共 20 間門市，累計至 W10（總計 3,169）
+# 共 20 間門市，累計至 W12（總計 3,962）
 DEFAULT_IPHONE_SALES = {
     "燦坤大甲店":             67,
     "燦坤中華店":             55,
