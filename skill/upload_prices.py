@@ -24,7 +24,22 @@ PRICE_DATA_DIR = BASE_DIR / "price-data"
 
 FIREBASE_URL = "https://trade-in-5135c-default-rtdb.asia-southeast1.firebasedatabase.app"
 FIREBASE_API_KEY = "AIzaSyCuK7MkMN_ZIUxv0cOA7zq_OMcR-2kaJBY"
-PRICE_COL = "調整後\n門市回收價"
+# 各通路欄位對應（Excel欄位名 → Firebase key）
+VENDOR_COL_MAP = {
+    "台哥大":         "台哥大",
+    "遠傳":           "遠傳",
+    "台北101":        "台北101",
+    "STUDIO A":       "STUDIO",
+    "STUDIO":         "STUDIO",
+    "APPLE BAR":      "APPLE BAR",
+    "地標":           "地標",
+    "米可":           "米可",
+    "神腦\n門市回收價": "神腦",
+    "神腦":           "神腦",
+    "trade in價":     "trade in價",
+    "trade in":       "trade in價",
+    "調整後\n門市回收價": "trade in價",
+}
 
 
 def firebase_patch(path, data):
@@ -45,16 +60,7 @@ def find_latest_price_file():
 
 
 def find_current_sheet(xl):
-    """找到今天日期對應的 sheet（格式 MMDD-MMDD）"""
-    today = datetime.now()
-    today_str = today.strftime("%m%d")  # e.g. "0620"
-    for name in xl.sheet_names:
-        parts = re.split(r"[-~]", name.strip())
-        if len(parts) == 2:
-            start, end = parts[0].strip(), parts[1].strip()
-            if start <= today_str <= end:
-                return name
-    # 找不到就用最後一個 sheet
+    """用最後一個 sheet（最新期價格）"""
     return xl.sheet_names[-1]
 
 
@@ -72,40 +78,43 @@ def main():
 
     df = pd.read_excel(price_file, sheet_name=sheet, dtype=str)
 
-    # 找機型欄和價格欄
     model_col = "機型"
     if model_col not in df.columns:
         sys.exit(f"❌ 找不到「機型」欄位，現有欄位：{list(df.columns)}")
-    if PRICE_COL not in df.columns:
-        sys.exit(f"❌ 找不到「{PRICE_COL}」欄位")
 
-    rows = df[[model_col, PRICE_COL]].dropna(subset=[model_col])
+    # 找出 Excel 裡有哪些通路欄位
+    active_cols = {col: key for col, key in VENDOR_COL_MAP.items() if col in df.columns}
+    print(f"💰 找到通路欄位：{list(active_cols.values())}")
+
+    rows = df.dropna(subset=[model_col])
     rows = rows[rows[model_col].str.strip() != ""]
 
-    print(f"📤 上傳 {len(rows)} 筆價格...")
-    success = 0
-    errors = 0
+    print(f"📤 整理 {len(rows)} 筆價格...")
+    all_prices = {}
     for _, row in rows.iterrows():
         model = row[model_col].strip().upper()
-        price_raw = str(row[PRICE_COL]).strip()
-        try:
-            price = int(float(price_raw))
-        except ValueError:
-            continue
-
         path = safe_path(model)
-        payload = {"model": model, "EPBOX": price}
-        resp = firebase_patch(f"tradein_prices/prices/{path}", payload)
-        if resp.status_code == 200:
-            success += 1
-        else:
-            print(f"   ✗ {model}：{resp.status_code} {resp.text[:80]}")
-            errors += 1
+        entry = {"model": model}
+        for col, key in active_cols.items():
+            try:
+                val = int(float(str(row[col]).strip()))
+                if val > 0:
+                    entry[key] = val
+            except (ValueError, KeyError):
+                pass
+        if len(entry) > 1:  # 至少有一個通路價格
+            all_prices[path] = entry
+
+    print(f"🔄 清空舊資料並寫入 {len(all_prices)} 筆...")
+    resp = firebase_put("tradein_prices/prices", all_prices)
+    if resp.status_code == 200:
+        print(f"✅ 上傳完成：{len(all_prices)} 筆成功")
+    else:
+        print(f"❌ 上傳失敗：{resp.status_code} {resp.text[:120]}")
 
     # 更新 lastUpdated
     firebase_put("tradein_prices/meta/lastUpdated", datetime.now().isoformat())
 
-    print(f"\n✅ 上傳完成：{success} 筆成功，{errors} 筆失敗")
 
 
 if __name__ == "__main__":
