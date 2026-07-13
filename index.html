@@ -1180,7 +1180,8 @@ async function loadWeeklyReport(){
     LATEST_WEEK=week;STORE_TOTALS=wd.store_totals||[];WEEKLY_CHART=wd.weekly_chart||{};
     const s=wd.summary||{};
     ['exec','exec2'].forEach(id=>{const el=document.getElementById('dyn-'+id);if(el)el.textContent=s.exec?.toLocaleString()||'—';});
-    ['plugin','deal','staff'].forEach(k=>{const el=document.getElementById('dyn-'+k);if(el)el.textContent=s[k]||'—';});
+    ['plugin','deal','staff'].forEach(k=>{const el=document.getElementById('dyn-'+k);if(el)el.textContent=(s[k]??'—');});
+    const pe2=document.getElementById('dyn-plugin2');if(pe2)pe2.textContent=(s.plugin??'—');
     const s2=document.getElementById('dyn-staff2');if(s2)s2.textContent=s.staff||'—';
     const we=document.getElementById('dyn-week');if(we)we.textContent=week;
     const ob=document.querySelector('[data-table="top10-old"]');
